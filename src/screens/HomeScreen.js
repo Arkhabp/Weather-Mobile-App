@@ -8,14 +8,9 @@ import {
   Image,
   TextInput,
   TouchableOpacity,
-  UIManager,
   ScrollView,
-  Keyboard,
-  KeyboardAvoidingView,
-  Alert,
   ActivityIndicator,
   RefreshControl,
-  Platform,
 } from 'react-native';
 import Helper from '../helper/helper';
 import {theme} from '../theme';
@@ -29,7 +24,11 @@ import {
 } from 'react-native-heroicons/outline';
 import {MapPinIcon} from 'react-native-heroicons/solid';
 import {fetchLocations, fetchWeatherForecast} from '../api/weather';
-import {weatherImages, weatherAnimations} from '../constants';
+import {
+  weatherImages,
+  weatherAnimations,
+  weatherAnimationsNight,
+} from '../constants';
 import {getData, storeData} from '../utils/asyncStorage';
 
 const HomeScreen = () => {
@@ -40,6 +39,8 @@ const HomeScreen = () => {
   const [isLoading, setIsloading] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [onRefresh, setOnRefresh] = useState(false);
+  const [isNight, setIsNight] = useState(false);
+  const [timeNow, setTimeNow] = useState();
 
   const handleLocation = loc => {
     setLocations([]);
@@ -52,7 +53,12 @@ const HomeScreen = () => {
       setWeather(data);
       setIsloading(false);
       setNotFound(false);
+      // setTimeNow(data.location.localtime);
       storeData('CITY', loc.name);
+      conditionTime(data.location.localtime);
+
+      console.log('Time now in handle Location', timeNow);
+
       console.log(data);
     });
   };
@@ -91,7 +97,22 @@ const HomeScreen = () => {
       setWeather(data);
       setIsloading(false);
       setOnRefresh(false);
+      conditionTime(data.location.localtime);
+      // setTimeNow(data.location.localtime);
     });
+  };
+
+  const conditionTime = time => {
+    let dateString = time;
+    var parts = dateString.split(' ');
+    var tanggal = parts[0];
+    var waktu = parts[1];
+
+    // Pisahkan jam dan menit dari waktu
+    var waktuParts = waktu.split(':');
+    var jam = waktuParts[0];
+
+    return setTimeNow(jam);
   };
 
   const refreshing = () => {
@@ -102,6 +123,9 @@ const HomeScreen = () => {
   const handleTextDebounce = useCallback(debounce(handleSearch, 900));
 
   const {current, location} = weather;
+  // console.log('Time per day', weather?.forecast?.forecastday[0]?.hour[0]?.time);
+  console.log('TimeNow', timeNow);
+  console.log('IsNight', isNight);
 
   useEffect(() => {
     fetchDefaulttWeather();
@@ -248,41 +272,40 @@ const HomeScreen = () => {
                     {location?.country}
                   </Text>
                 </Text>
+
                 {/* Weather Image */}
                 <View
                   style={{
                     flexDirection: 'row',
                     justifyContent: 'center',
                   }}>
-                  {/* <Image
-                source={
-                  weatherImages[
-                    current?.condition?.text &&
-                    weatherImages.hasOwnProperty(current?.condition?.text)
-                      ? current?.condition?.text
-                      : 'Sunny' // Provide the key for the default image
-                  ]
-                }
-                style={{
-                  width: Helper.normalize(154),
-                  height: Helper.normalize(154),
-                }}
-              /> */}
                   <View
                     style={{
                       width: Helper.normalize(210),
                       height: Helper.normalize(210),
                       marginBottom: Helper.normalize(-20),
                     }}>
-                    <LottieView
-                      source={
-                        weatherAnimations[current?.condition?.text] ||
-                        weatherAnimations['Sunny']
-                      }
-                      style={{width: '100%', height: '100%'}}
-                      autoPlay
-                      loop
-                    />
+                    {timeNow > 19 ? (
+                      <LottieView
+                        source={
+                          weatherAnimationsNight[current?.condition?.text] ||
+                          weatherAnimationsNight['Sunny']
+                        }
+                        style={{width: '100%', height: '100%'}}
+                        autoPlay
+                        loop
+                      />
+                    ) : (
+                      <LottieView
+                        source={
+                          weatherAnimations[current?.condition?.text] ||
+                          weatherAnimations['Sunny']
+                        }
+                        style={{width: '100%', height: '100%'}}
+                        autoPlay
+                        loop
+                      />
+                    )}
                   </View>
                 </View>
                 {/* Degree Celcius */}
